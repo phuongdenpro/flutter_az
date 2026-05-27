@@ -1,4 +1,8 @@
+import 'dart:ffi';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_go_router/config/router_config.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,7 +14,7 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -30,7 +34,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      routerConfig: router,
     );
   }
 }
@@ -108,6 +112,28 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            const SizedBox(height: 20),
+
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to the second screen using a named route.
+                context.go('/login');
+              },
+              child: const Text(
+                'Go to Login Page',
+                style: TextStyle(fontSize: 18, color: Colors.red),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to the second screen using a named route.
+                context.go('/products');
+              },
+              child: const Text(
+                'Go to Product Page',
+                style: TextStyle(fontSize: 18, color: Colors.red),
+              ),
             ),
           ],
         ),
