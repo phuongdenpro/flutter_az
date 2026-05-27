@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_navigation/models/todo.dart';
+import 'package:flutter_navigation/pages/list_toto.dart';
+import 'package:flutter_navigation/pages/page_1.dart';
+import 'package:flutter_navigation/pages/page_2.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,6 +16,13 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const MyHomePage(title: 'Flutter Demo Home Page'),
+        '/page1': (context) => const Page1(title: 'Page 1'),
+        '/page2': (context) => const Page2(title: 'Page 2'),
+      },
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -30,7 +41,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      // home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -108,6 +119,59 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Page1(title: 'Page 1'),
+                  ),
+                );
+              },
+              child: Text('Đi tới Page 1'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Page1(title: 'Page 1'),
+                  ),
+                  (route) => false,
+                );
+              },
+              child: Text('Đi tới Page 1 và xóa lịch sử'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Page2(title: 'Page 2'),
+                  ),
+                );
+              },
+              child: Text('Đi tới Page 2 và thay thế'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TodosScreen(
+                      todos: List.generate(
+                        20,
+                        (i) => Todo(
+                          'Todo $i',
+                          'A description of what needs to be done for Todo $i',
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+              child: Text('Đi tới Page todo list'),
             ),
           ],
         ),
