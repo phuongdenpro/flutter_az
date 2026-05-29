@@ -51,6 +51,7 @@ class ProductService {
           'name': name,
           'description': description,
           'price': price,
+          'quantity': 1, // quantity is not editable in this form, so we can just pass a dummy value
         },
       );
       return ProductModel.fromJson(response.data as Map<String, dynamic>);
@@ -67,6 +68,7 @@ class ProductService {
           'name': name,
           'description': description,
           'price': price,
+          'quantity': 1, // quantity is not editable in this form, so we can just pass a dummy value
         },
       );
       return ProductModel.fromJson(response.data as Map<String, dynamic>);
