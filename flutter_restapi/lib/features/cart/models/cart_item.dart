@@ -1,4 +1,4 @@
-import '../../products/models/product_model.dart';
+import 'package:flutter_restapi/features/products/domain/entities/product_entity.dart';
 
 class CartItem {
   final ProductModel product;
@@ -6,5 +6,5 @@ class CartItem {
 
   CartItem({required this.product, required this.quantity});
 
-  double get totalPrice => product.price * quantity;
+  double get totalPrice => product.price * quantity.toDouble();
 }

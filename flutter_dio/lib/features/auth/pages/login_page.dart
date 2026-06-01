@@ -3,7 +3,6 @@ import 'package:flutter_dio/core/network/api_client.dart';
 import 'package:flutter_dio/core/storage/token_storage.dart';
 import 'package:flutter_dio/features/auth/pages/register_page.dart';
 import 'package:flutter_dio/features/auth/services/auth_service.dart';
-import 'profile_page.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginPage extends StatefulWidget {

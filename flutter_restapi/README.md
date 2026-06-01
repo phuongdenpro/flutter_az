@@ -1,17 +1,51 @@
 # flutter_restapi
 
-A new Flutter project.
+Ứng dụng Flutter kết nối REST API — kiến trúc feature-first theo chuẩn dự án doanh nghiệp.
 
-## Getting Started
+## Cấu trúc thư mục
 
-This project is a starting point for a Flutter application.
+```
+lib/
+├── main.dart                 # Entry point
+├── app/                      # Lớp ứng dụng (router, shell, MaterialApp)
+│   ├── app.dart
+│   ├── router/
+│   └── shell/
+├── config/                   # Hằng số cấu hình app
+├── core/                     # Hạ tầng dùng chung (network, storage, theme, DI)
+├── shared/                   # Widget & tiện ích tái sử dụng
+└── features/                 # Module theo nghiệp vụ
+    ├── auth/
+    │   ├── data/             # models, services
+    │   └── presentation/     # pages, widgets
+    ├── home/
+    ├── catalog/
+    ├── products/
+    │   ├── domain/           # entities
+    │   ├── data/             # services
+    │   └── presentation/
+    ├── cart/
+    ├── orders/
+    └── profile/
+```
 
-A few resources to get you started if this is your first Flutter project:
+## Điều hướng
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Sau đăng nhập, **Bottom Navigation** gồm 5 tab:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+| Tab | Route | Mô tả |
+|-----|-------|--------|
+| Trang chủ | `/home` | Dashboard, banner, sản phẩm nổi bật |
+| Danh mục | `/catalog` | Toàn bộ sản phẩm + tìm kiếm |
+| Giỏ hàng | `/cart` | Quản lý giỏ |
+| Đơn hàng | `/orders` | Lịch sử đơn (mẫu, chờ API) |
+| Tài khoản | `/account` | Hồ sơ, cài đặt, đăng xuất |
+
+Các màn full-screen (chi tiết SP, quản lý admin, sửa hồ sơ) mở trên shell qua `parentNavigatorKey`.
+
+## Chạy ứng dụng
+
+```bash
+flutter pub get
+flutter run
+```
