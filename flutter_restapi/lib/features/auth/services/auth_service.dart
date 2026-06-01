@@ -21,6 +21,7 @@ class AuthService {
       );
       final loginResponse = LoginResponse.fromJson(response.data as Map<String, dynamic>);
       await tokenStorage.saveToken(loginResponse.accessToken);
+      await tokenStorage.saveRefreshToken(loginResponse.refreshToken ?? '');
       return loginResponse;
     } on DioException catch (error) {
       throw _extractError(error);
