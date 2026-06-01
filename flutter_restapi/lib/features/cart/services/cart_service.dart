@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/cart_item.dart';
-import '../../products/models/product_model.dart';
+import 'package:flutter_restapi/features/products/domain/entities/product_entity.dart';
 
 class CartService {
   CartService._internal();

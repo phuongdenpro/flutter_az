@@ -1,0 +1,245 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import 'package:flutter_restapi/app/router/route_paths.dart';
+import 'package:flutter_restapi/core/di/app_dependencies.dart';
+import 'package:flutter_restapi/features/products/data/services/product_service.dart';
+import 'package:flutter_restapi/features/products/domain/entities/product_entity.dart';
+import 'package:flutter_restapi/shared/widgets/error_widget.dart';
+import 'package:flutter_restapi/shared/widgets/loading_widget.dart';
+
+class ProductManagementPage extends StatefulWidget {
+  const ProductManagementPage({super.key});
+
+  @override
+  State<ProductManagementPage> createState() => _ProductManagementPageState();
+}
+
+class _ProductManagementPageState extends State<ProductManagementPage> {
+  late final ProductService _productService;
+  final ScrollController scrollController = ScrollController();
+
+  final List<ProductModel> _products = [];
+  int page = 1;
+  final int pageSize = 10;
+  bool isLoadingMore = false;
+  bool hasMore = true;
+  bool isInitialLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _productService = ProductService(AppDependencies.instance.apiClient);
+    scrollController.addListener(_onScroll);
+    _loadProducts(reset: true);
+  }
+
+  @override
+  void dispose() {
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (scrollController.position.pixels >= scrollController.position.maxScrollExtent - 100) {
+      loadMoreProducts();
+    }
+  }
+
+  Future<void> _loadProducts({bool reset = false}) async {
+    if (isLoadingMore || (!hasMore && !reset)) return;
+
+    if (reset) {
+      page = 1;
+      hasMore = true;
+      _products.clear();
+      errorMessage = null;
+    }
+
+    setState(() {
+      isLoadingMore = true;
+      if (reset) {
+        isInitialLoading = true;
+      }
+    });
+
+    try {
+      final newProducts = await _productService.getProducts(
+        page: page,
+        pageSize: pageSize,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _products.addAll(newProducts);
+        page++;
+        hasMore = newProducts.length == pageSize;
+        errorMessage = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        errorMessage = error.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        isLoadingMore = false;
+        isInitialLoading = false;
+      });
+    }
+  }
+
+  Future<void> _refresh() async {
+    await _loadProducts(reset: true);
+  }
+
+  Future<void> loadMoreProducts() async {
+    if (isLoadingMore || !hasMore || isInitialLoading) return;
+    await _loadProducts();
+  }
+
+  Future<void> _deleteProduct(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa sản phẩm'),
+        content: const Text('Bạn có chắc muốn xóa sản phẩm này không?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Xóa')),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    try {
+      await _productService.deleteProduct(id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa sản phẩm thành công')));
+      _refresh();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Quản lý sản phẩm'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(RoutePaths.home);
+            }
+          },
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.add),
+        label: const Text('Thêm mới'),
+        onPressed: () => context.push(RoutePaths.manageForm).then((_) => _refresh()),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: Builder(
+          builder: (context) {
+            if (isInitialLoading) {
+              return const LoadingWidget(message: 'Đang tải danh sách quản lý...');
+            }
+
+            if (errorMessage != null && _products.isEmpty) {
+              return AppErrorWidget(
+                message: errorMessage!,
+                onRetry: _refresh,
+              );
+            }
+
+            if (_products.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Chưa có sản phẩm nào.', style: TextStyle(fontSize: 16, color: Colors.black54)),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => context.push(RoutePaths.manageForm).then((_) => _refresh()),
+                      child: const Text('Tạo sản phẩm mới'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return ListView.separated(
+              controller: scrollController,
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              itemCount: _products.length + (hasMore ? 1 : 0),
+              separatorBuilder: (context, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                if (index >= _products.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                final product = _products[index];
+                return Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: ListTile(
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                          ? Image.network(
+                              product.imageUrl!,
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 60,
+                                height: 60,
+                                color: Colors.grey[200],
+                                child: const Icon(Icons.image_not_supported, color: Colors.black38),
+                              ),
+                            )
+                          : Container(
+                              width: 60,
+                              height: 60,
+                              color: Colors.grey[200],
+                              child: const Icon(Icons.image_not_supported, color: Colors.black38),
+                            ),
+                    ),
+                    title: Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text('${product.price} đ'),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.indigo),
+                          onPressed: () => context.push('${RoutePaths.manageForm}/${product.id}').then((_) => _refresh()),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.redAccent),
+                          onPressed: () => _deleteProduct(product.id),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

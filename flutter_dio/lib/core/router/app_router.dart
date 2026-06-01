@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_dio/features/auth/pages/edit_profile_page.dart';
 import 'package:flutter_dio/features/auth/pages/profile_page.dart';
 import 'package:go_router/go_router.dart';
