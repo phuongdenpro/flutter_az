@@ -10,9 +10,17 @@ class ProductService {
 
   ProductService(this.client);
 
-  Future<List<ProductModel>> getProducts() async {
+  Future<List<ProductModel>> getProducts({
+  required int page,
+  required int pageSize,
+}) async {
     try {
-      final response = await client.dio.get('/admin/products');
+      final response = await client.dio.get('/admin/products',
+        queryParameters: {
+      'page': page,
+      'pageSize': pageSize,
+    },
+      );
       final responseData = response.data;
 
       // Support two possible response formats:

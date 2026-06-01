@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_restapi/features/products/pages/product_list_page.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../products/models/product_model.dart';
 import '../../products/services/product_service.dart';
-import '../../products/pages/product_list_page.dart';
 import '../../profile/services/profile_service.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/token_storage.dart';
@@ -23,12 +23,15 @@ class _HomePageState extends State<HomePage> {
   late Future<List<ProductModel>> _futureProducts;
   bool _isAdmin = false;
 
+  int page = 1;
+  final int pageSize = 10;
+
   @override
   void initState() {
     super.initState();
     _productService = ProductService(ApiClient(TokenStorage()));
     _profileService = ProfileService(ApiClient(TokenStorage()));
-    _futureProducts = _productService.getProducts();
+    _futureProducts = _productService.getProducts(page: page, pageSize: pageSize);
     _loadUserRole();
   }
 
@@ -46,7 +49,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _refresh() async {
     setState(() {
-      _futureProducts = _productService.getProducts();
+      _futureProducts = _productService.getProducts(page: page, pageSize: pageSize);
     });
   }
 
@@ -99,6 +102,8 @@ class _HomePageState extends State<HomePage> {
                     onTap: (product) {
                       context.push('/product/${product.id}');
                     },
+                    loadPage: ({required page, required pageSize}) => _productService.getProducts(page: page, pageSize: pageSize),
+                    pageSize: pageSize,
                   ),
                 ),
               ],

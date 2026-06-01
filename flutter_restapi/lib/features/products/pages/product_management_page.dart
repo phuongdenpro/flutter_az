@@ -17,19 +17,89 @@ class ProductManagementPage extends StatefulWidget {
 
 class _ProductManagementPageState extends State<ProductManagementPage> {
   late final ProductService _productService;
-  late Future<List<ProductModel>> _futureProducts;
+  final ScrollController scrollController = ScrollController();
+
+  final List<ProductModel> _products = [];
+  int page = 1;
+  final int pageSize = 10;
+  bool isLoadingMore = false;
+  bool hasMore = true;
+  bool isInitialLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
     _productService = ProductService(ApiClient(TokenStorage()));
-    _futureProducts = _productService.getProducts();
+    scrollController.addListener(_onScroll);
+    _loadProducts(reset: true);
+  }
+
+  @override
+  void dispose() {
+    scrollController.removeListener(_onScroll);
+    scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (scrollController.position.pixels >= scrollController.position.maxScrollExtent - 100) {
+      loadMoreProducts();
+    }
+  }
+
+  Future<void> _loadProducts({bool reset = false}) async {
+    if (isLoadingMore || (!hasMore && !reset)) return;
+
+    if (reset) {
+      page = 1;
+      hasMore = true;
+      _products.clear();
+      errorMessage = null;
+    }
+
+    setState(() {
+      isLoadingMore = true;
+      if (reset) {
+        isInitialLoading = true;
+      }
+    });
+
+    try {
+      final newProducts = await _productService.getProducts(
+        page: page,
+        pageSize: pageSize,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _products.addAll(newProducts);
+        page++;
+        hasMore = newProducts.length == pageSize;
+        errorMessage = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        errorMessage = error.toString();
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        isLoadingMore = false;
+        isInitialLoading = false;
+      });
+    }
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _futureProducts = _productService.getProducts();
-    });
+    await _loadProducts(reset: true);
+  }
+
+  Future<void> loadMoreProducts() async {
+    if (isLoadingMore || !hasMore || isInitialLoading) return;
+    await _loadProducts();
   }
 
   Future<void> _deleteProduct(int id) async {
@@ -80,20 +150,20 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
       ),
       body: RefreshIndicator(
         onRefresh: _refresh,
-        child: FutureBuilder<List<ProductModel>>(
-          future: _futureProducts,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
+        child: Builder(
+          builder: (context) {
+            if (isInitialLoading) {
               return const LoadingWidget(message: 'Đang tải danh sách quản lý...');
             }
-            if (snapshot.hasError) {
+
+            if (errorMessage != null && _products.isEmpty) {
               return AppErrorWidget(
-                message: snapshot.error.toString(),
+                message: errorMessage!,
                 onRetry: _refresh,
               );
             }
-            final products = snapshot.data ?? [];
-            if (products.isEmpty) {
+
+            if (_products.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -110,11 +180,19 @@ class _ProductManagementPageState extends State<ProductManagementPage> {
             }
 
             return ListView.separated(
+              controller: scrollController,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-              itemCount: products.length,
+              itemCount: _products.length + (hasMore ? 1 : 0),
               separatorBuilder: (context, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final product = products[index];
+                if (index >= _products.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                final product = _products[index];
                 return Card(
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   child: ListTile(
