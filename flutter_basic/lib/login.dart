@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_basic/ui.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -9,6 +10,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final formKey = GlobalKey<FormState>();
+  late NavigatorState navigation;
 
   final email = TextEditingController();
 
@@ -28,6 +30,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    navigation = Navigator.of(context);
     return GestureDetector(
       onTap: () {
         // FocusScope.of(context).unfocus();
@@ -41,6 +44,9 @@ class _LoginPageState extends State<LoginPage> {
       },
 
       child: Scaffold(
+        appBar: AppBar(
+          title: Text("Login"),
+        ),
         backgroundColor: isRed ? Colors.amber : Colors.green,
         body: Padding(
           padding: EdgeInsets.all(20),
@@ -107,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
                 ElevatedButton(
                   onPressed: () {
                     if (formKey.currentState!.validate()) {
-                      print(email.text);
+                      navigation.push(MaterialPageRoute(builder: (context) => Ui()));
                     }
                   },
 
