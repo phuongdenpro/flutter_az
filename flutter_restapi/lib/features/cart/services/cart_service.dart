@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../models/cart_item.dart';
-import 'package:flutter_restapi/features/products/domain/entities/product_entity.dart';
+import 'package:flutter_restapi/features/product/domain/entities/product_entity.dart';
 
 class CartService {
   CartService._internal();
@@ -17,7 +17,7 @@ class CartService {
 
   double get totalPrice => _items.values.fold(0, (sum, item) => sum + item.totalPrice);
 
-  void addToCart(ProductModel product, int quantity) {
+  void addToCart(ProductEntity product, int quantity) {
     if (quantity <= 0) return;
     final available = product.quantity;
     final addedQuantity = quantity.clamp(1, available);

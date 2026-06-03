@@ -1,3 +1,5 @@
+import '../../domain/entities/user_entity.dart';
+
 class UserModel {
   final int id;
   final String fullName;
@@ -5,7 +7,7 @@ class UserModel {
   final String role;
   final String? avatarUrl;
 
-  UserModel({
+  const UserModel({
     required this.id,
     required this.fullName,
     required this.email,
@@ -23,11 +25,11 @@ class UserModel {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'fullName': fullName,
-        'email': email,
-        'role': role,
-        'avatarUrl': avatarUrl,
-      };
+  UserEntity toEntity() => UserEntity(
+        id: id,
+        fullName: fullName,
+        email: email,
+        role: role,
+        avatarUrl: avatarUrl,
+      );
 }

@@ -1,36 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_restapi/app/router/route_paths.dart';
-import 'package:flutter_restapi/core/di/app_dependencies.dart';
 import 'package:flutter_restapi/core/theme/app_colors.dart';
-import 'package:flutter_restapi/features/auth/data/services/auth_service.dart';
-import 'package:flutter_restapi/shared/widgets/auth_layout.dart';
-import 'package:flutter_restapi/shared/widgets/custom_button.dart';
-import 'package:flutter_restapi/shared/widgets/custom_text_field.dart';
+import 'package:flutter_restapi/features/auth/presentation/providers/login_controller.dart';
+import 'package:flutter_restapi/core/widgets/auth_layout.dart';
+import 'package:flutter_restapi/core/widgets/custom_button.dart';
+import 'package:flutter_restapi/core/widgets/custom_text_field.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   String? _errorMessage;
-
-  late final AuthService _authService;
-
-  @override
-  void initState() {
-    super.initState();
-    final deps = AppDependencies.instance;
-    _authService = AuthService(deps.apiClient, deps.tokenStorage);
-  }
 
   @override
   void dispose() {
@@ -42,26 +32,26 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _errorMessage = null;
-      _isLoading = true;
-    });
+    setState(() => _errorMessage = null);
 
-    try {
-      await _authService.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      if (mounted) context.go(RoutePaths.home);
-    } catch (error) {
-      setState(() => _errorMessage = error.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    final error = await ref.read(loginControllerProvider.notifier).login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
+        );
+
+    if (!mounted) return;
+
+    if (error == null) {
+      context.go(RoutePaths.home);
+    } else {
+      setState(() => _errorMessage = error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(loginControllerProvider).isLoading;
+
     return AuthLayout(
       title: 'Đăng nhập',
       subtitle: 'Đăng nhập để quản lý sản phẩm và theo dõi đơn hàng.',
@@ -121,7 +111,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ],
             const SizedBox(height: 24),
-            CustomButton(label: 'Đăng nhập', isLoading: _isLoading, onPressed: _submit),
+            CustomButton(label: 'Đăng nhập', isLoading: isLoading, onPressed: _submit),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

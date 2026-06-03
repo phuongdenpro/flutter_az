@@ -1,42 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_restapi/app/router/route_paths.dart';
-import 'package:flutter_restapi/core/di/app_dependencies.dart';
-import 'package:flutter_restapi/features/auth/data/models/user_model.dart';
-import 'package:flutter_restapi/core/notifiers/profile_refresh_notifier.dart';
-import 'package:flutter_restapi/features/profile/data/services/profile_service.dart';
-import 'package:flutter_restapi/shared/widgets/custom_button.dart';
-import 'package:flutter_restapi/shared/widgets/custom_text_field.dart';
-import 'package:flutter_restapi/shared/widgets/error_widget.dart';
-import 'package:flutter_restapi/shared/widgets/loading_widget.dart';
+import 'package:flutter_restapi/features/profile/presentation/providers/profile_controller.dart';
+import 'package:flutter_restapi/core/widgets/custom_button.dart';
+import 'package:flutter_restapi/core/widgets/custom_text_field.dart';
+import 'package:flutter_restapi/core/widgets/error_widget.dart';
+import 'package:flutter_restapi/core/widgets/loading_widget.dart';
 
-class EditProfilePage extends StatefulWidget {
+class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
 
   @override
-  State<EditProfilePage> createState() => _EditProfilePageState();
+  ConsumerState<EditProfilePage> createState() => _EditProfilePageState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
-  bool _isLoading = false;
   String? _errorMessage;
-  late final ProfileService _profileService;
-  late Future<UserModel> _futureUser;
-
-  @override
-  void initState() {
-    super.initState();
-    _profileService = ProfileService(AppDependencies.instance.apiClient);
-    _futureUser = _profileService.getMe().then((UserModel user) {
-      _fullNameController.text = user.fullName;
-      _emailController.text = user.email;
-      return user;
-    });
-  }
+  bool _initialized = false;
 
   @override
   void dispose() {
@@ -45,42 +30,42 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() {
-      _errorMessage = null;
-      _isLoading = true;
-    });
+  void _initFields() {
+    if (_initialized) return;
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user == null) return;
+    _fullNameController.text = user.fullName;
+    _emailController.text = user.email;
+    _initialized = true;
+  }
 
-    try {
-      await _profileService.updateProfile(
-        fullName: _fullNameController.text.trim(),
-        email: _emailController.text.trim(),
-      );
-      if (mounted) {
-        ProfileRefreshNotifier.instance.notifyChanged();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cập nhật thông tin thành công')),
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _errorMessage = null);
+
+    final error = await ref.read(editProfileControllerProvider.notifier).save(
+          fullName: _fullNameController.text.trim(),
+          email: _emailController.text.trim(),
         );
-        context.pop(true);
-      }
-    } catch (error) {
-      setState(() {
-        _errorMessage = error.toString();
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+
+    if (!mounted) return;
+
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cập nhật thông tin thành công')),
+      );
+      context.pop(true);
+    } else {
+      setState(() => _errorMessage = error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final userAsync = ref.watch(currentUserProvider);
+    final isLoading = ref.watch(editProfileControllerProvider).isLoading;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cập nhật hồ sơ'),
@@ -95,66 +80,65 @@ class _EditProfilePageState extends State<EditProfilePage> {
           },
         ),
       ),
-      body: FutureBuilder<UserModel>(
-        future: _futureUser,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const LoadingWidget(message: 'Đang tải hồ sơ...');
+      body: userAsync.when(
+        loading: () => const LoadingWidget(message: 'Đang tải hồ sơ...'),
+        error: (error, _) => AppErrorWidget(
+          message: error.toString(),
+          onRetry: () => ref.read(currentUserProvider.notifier).refresh(),
+        ),
+        data: (user) {
+          if (user == null) {
+            return const AppErrorWidget(message: 'Không tải được hồ sơ');
           }
-          if (snapshot.hasError) {
-            return AppErrorWidget(message: snapshot.error.toString(), onRetry: () {
-              setState(() {
-                _futureUser = _profileService.getMe();
-              });
-            });
-          }
+
+          _initFields();
+
           return Padding(
             padding: const EdgeInsets.all(24),
             child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        CustomTextField(
-                          label: 'Họ và tên',
-                          hintText: 'Nhập họ tên',
-                          controller: _fullNameController,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Họ tên không được để trống';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        CustomTextField(
-                          label: 'Email',
-                          hintText: 'Nhập email',
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Email không được để trống';
-                            }
-                            if (!RegExp(r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}").hasMatch(value)) {
-                              return 'Email không hợp lệ';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        if (_errorMessage != null) ...[
-                          Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-                          const SizedBox(height: 12),
-                        ],
-                        CustomButton(label: 'Lưu lại', isLoading: _isLoading, onPressed: _saveProfile),
-                      ],
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    CustomTextField(
+                      label: 'Họ và tên',
+                      hintText: 'Nhập họ tên',
+                      controller: _fullNameController,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Họ tên không được để trống';
+                        }
+                        return null;
+                      },
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    CustomTextField(
+                      label: 'Email',
+                      hintText: 'Nhập email',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Email không được để trống';
+                        }
+                        if (!RegExp(r"^[\w-.]+@([\w-]+\.)+[\w-]{2,4}").hasMatch(value)) {
+                          return 'Email không hợp lệ';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    if (_errorMessage != null) ...[
+                      Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
+                      const SizedBox(height: 12),
+                    ],
+                    CustomButton(
+                      label: 'Lưu lại',
+                      isLoading: isLoading,
+                      onPressed: _saveProfile,
+                    ),
+                  ],
+                ),
               ),
             ),
           );
