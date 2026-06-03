@@ -6,8 +6,8 @@ import 'package:flutter_restapi/core/theme/app_colors.dart';
 import 'package:flutter_restapi/core/utils/formatters.dart';
 import 'package:flutter_restapi/features/orders/data/repositories/order_repository.dart';
 import 'package:flutter_restapi/features/orders/domain/entities/order_entity.dart';
-import 'package:flutter_restapi/shared/widgets/empty_state.dart';
-import 'package:flutter_restapi/shared/widgets/loading_widget.dart';
+import 'package:flutter_restapi/core/widgets/empty_state.dart';
+import 'package:flutter_restapi/core/widgets/loading_widget.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});

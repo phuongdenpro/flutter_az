@@ -1,7 +1,7 @@
-import 'package:flutter_restapi/features/products/domain/entities/product_entity.dart';
+import 'package:flutter_restapi/features/product/domain/entities/product_entity.dart';
 
 class CartItem {
-  final ProductModel product;
+  final ProductEntity product;
   int quantity;
 
   CartItem({required this.product, required this.quantity});

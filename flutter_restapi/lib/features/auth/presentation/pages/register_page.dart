@@ -1,37 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_restapi/app/router/route_paths.dart';
-import 'package:flutter_restapi/core/di/app_dependencies.dart';
 import 'package:flutter_restapi/core/theme/app_colors.dart';
-import 'package:flutter_restapi/features/auth/data/services/auth_service.dart';
-import 'package:flutter_restapi/shared/widgets/auth_layout.dart';
-import 'package:flutter_restapi/shared/widgets/custom_button.dart';
-import 'package:flutter_restapi/shared/widgets/custom_text_field.dart';
+import 'package:flutter_restapi/features/auth/presentation/providers/register_controller.dart';
+import 'package:flutter_restapi/core/widgets/auth_layout.dart';
+import 'package:flutter_restapi/core/widgets/custom_button.dart';
+import 'package:flutter_restapi/core/widgets/custom_text_field.dart';
 
-class RegisterPage extends StatefulWidget {
+class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   String? _errorMessage;
-
-  late final AuthService _authService;
-
-  @override
-  void initState() {
-    super.initState();
-    final deps = AppDependencies.instance;
-    _authService = AuthService(deps.apiClient, deps.tokenStorage);
-  }
 
   @override
   void dispose() {
@@ -44,32 +34,30 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _errorMessage = null;
-      _isLoading = true;
-    });
+    setState(() => _errorMessage = null);
 
-    try {
-      await _authService.register(
-        fullName: _fullNameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng ký thành công. Vui lòng đăng nhập.')),
+    final error = await ref.read(registerControllerProvider.notifier).register(
+          fullName: _fullNameController.text.trim(),
+          email: _emailController.text.trim(),
+          password: _passwordController.text.trim(),
         );
-        context.go(RoutePaths.login);
-      }
-    } catch (error) {
-      setState(() => _errorMessage = error.toString());
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đăng ký thành công. Vui lòng đăng nhập.')),
+      );
+      context.go(RoutePaths.login);
+    } else {
+      setState(() => _errorMessage = error);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(registerControllerProvider).isLoading;
+
     return AuthLayout(
       title: 'Đăng ký',
       subtitle: 'Tạo tài khoản mới để bắt đầu mua sắm và quản lý.',
@@ -140,7 +128,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ],
             const SizedBox(height: 24),
-            CustomButton(label: 'Đăng ký', isLoading: _isLoading, onPressed: _submit),
+            CustomButton(label: 'Đăng ký', isLoading: isLoading, onPressed: _submit),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

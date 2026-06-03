@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
 import '../storage/token_storage.dart';
-import '../../core/constants/api_constants.dart';
+import '../constants/api_constants.dart';
 
 class ApiClient {
   final Dio dio;

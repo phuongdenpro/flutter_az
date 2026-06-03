@@ -9,12 +9,12 @@ import 'package:flutter_restapi/features/cart/presentation/pages/cart_page.dart'
 import 'package:flutter_restapi/features/catalog/presentation/pages/catalog_page.dart';
 import 'package:flutter_restapi/features/home/presentation/pages/home_page.dart';
 import 'package:flutter_restapi/features/orders/presentation/pages/orders_page.dart';
-import 'package:flutter_restapi/features/products/presentation/pages/product_detail_page.dart';
-import 'package:flutter_restapi/features/products/presentation/pages/product_form_page.dart';
-import 'package:flutter_restapi/features/products/presentation/pages/product_management_page.dart';
-import 'package:flutter_restapi/features/profile/presentation/pages/change_password_page.dart';
+import 'package:flutter_restapi/features/product/presentation/pages/product_detail_page.dart';
+import 'package:flutter_restapi/features/product/presentation/pages/product_form_page.dart';
+import 'package:flutter_restapi/features/product/presentation/pages/product_management_page.dart';
 import 'package:flutter_restapi/features/profile/presentation/pages/edit_profile_page.dart';
 import 'package:flutter_restapi/features/profile/presentation/pages/profile_page.dart';
+import 'package:flutter_restapi/features/settings/presentation/pages/change_password_page.dart';
 import 'route_paths.dart';
 
 class AppRouter {

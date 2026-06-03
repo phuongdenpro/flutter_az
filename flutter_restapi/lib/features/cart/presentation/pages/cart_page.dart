@@ -5,8 +5,8 @@ import 'package:flutter_restapi/app/router/route_paths.dart';
 import 'package:flutter_restapi/core/theme/app_colors.dart';
 import 'package:flutter_restapi/core/utils/formatters.dart';
 import 'package:flutter_restapi/features/cart/services/cart_service.dart';
-import 'package:flutter_restapi/shared/widgets/custom_button.dart';
-import 'package:flutter_restapi/shared/widgets/empty_state.dart';
+import 'package:flutter_restapi/core/widgets/custom_button.dart';
+import 'package:flutter_restapi/core/widgets/empty_state.dart';
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});

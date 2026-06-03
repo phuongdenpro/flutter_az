@@ -1,82 +1,48 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter_restapi/app/router/route_paths.dart';
-import 'package:flutter_restapi/core/di/app_dependencies.dart';
 import 'package:flutter_restapi/core/theme/app_colors.dart';
-import 'package:flutter_restapi/features/auth/data/models/user_model.dart';
-import 'package:flutter_restapi/core/notifiers/profile_refresh_notifier.dart';
-import 'package:flutter_restapi/features/profile/data/services/profile_service.dart';
-import 'package:flutter_restapi/shared/widgets/custom_button.dart';
-import 'package:flutter_restapi/shared/widgets/error_widget.dart';
-import 'package:flutter_restapi/shared/widgets/loading_widget.dart';
+import 'package:flutter_restapi/features/auth/presentation/providers/auth_providers.dart';
+import 'package:flutter_restapi/features/profile/presentation/providers/profile_controller.dart';
+import 'package:flutter_restapi/core/widgets/custom_button.dart';
+import 'package:flutter_restapi/core/widgets/error_widget.dart';
+import 'package:flutter_restapi/core/widgets/loading_widget.dart';
 
-class ProfilePage extends StatefulWidget {
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
-  late final ProfileService _profileService;
-  late Future<UserModel> _futureUser;
-
-  @override
-  void initState() {
-    super.initState();
-    _profileService = ProfileService(AppDependencies.instance.apiClient);
-    _futureUser = _profileService.getMe();
-    ProfileRefreshNotifier.instance.tick.addListener(_onProfileChanged);
+  Future<void> _logout(BuildContext context, WidgetRef ref) async {
+    await ref.read(logoutUseCaseProvider).call();
+    if (context.mounted) context.go(RoutePaths.login);
   }
 
   @override
-  void dispose() {
-    ProfileRefreshNotifier.instance.tick.removeListener(_onProfileChanged);
-    super.dispose();
-  }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(currentUserProvider);
 
-  void _onProfileChanged() {
-    _refreshUser();
-  }
-
-  Future<void> _refreshUser() async {
-    setState(() => _futureUser = _profileService.getMe());
-    await _futureUser;
-  }
-
-  Future<void> _openEditProfile() async {
-    final updated = await context.push<bool>(RoutePaths.profileEdit);
-    if (updated == true && mounted) {
-      await _refreshUser();
-    }
-  }
-
-  Future<void> _logout() async {
-    await AppDependencies.instance.tokenStorage.clearToken();
-    if (mounted) context.go(RoutePaths.login);
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: SafeArea(
-        child: FutureBuilder<UserModel>(
-          future: _futureUser,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const LoadingWidget(message: 'Đang tải thông tin...');
-            }
-            if (snapshot.hasError) {
-              return AppErrorWidget(message: snapshot.error.toString(), onRetry: _refreshUser);
+        child: userAsync.when(
+          loading: () => const LoadingWidget(message: 'Đang tải thông tin...'),
+          error: (error, _) => AppErrorWidget(
+            message: error.toString(),
+            onRetry: () => ref.read(currentUserProvider.notifier).refresh(),
+          ),
+          data: (user) {
+            if (user == null) {
+              return AppErrorWidget(
+                message: 'Không tải được thông tin người dùng',
+                onRetry: () => ref.read(currentUserProvider.notifier).refresh(),
+              );
             }
 
-            final user = snapshot.data!;
             final isAdmin = user.role.toLowerCase() == 'admin';
 
             return RefreshIndicator(
-              onRefresh: _refreshUser,
+              onRefresh: () => ref.read(currentUserProvider.notifier).refresh(),
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(20),
@@ -137,7 +103,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   _ProfileMenuTile(
                     icon: Icons.edit_outlined,
                     title: 'Cập nhật thông tin',
-                    onTap: _openEditProfile,
+                    onTap: () async {
+                      final updated = await context.push<bool>(RoutePaths.profileEdit);
+                      if (updated == true) {
+                        await ref.read(currentUserProvider.notifier).refresh();
+                      }
+                    },
                   ),
                   _ProfileMenuTile(
                     icon: Icons.lock_outline,
@@ -151,7 +122,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       onTap: () => context.push(RoutePaths.manage),
                     ),
                   const SizedBox(height: 24),
-                  CustomButton(label: 'Đăng xuất', color: AppColors.error, onPressed: _logout),
+                  CustomButton(
+                    label: 'Đăng xuất',
+                    color: AppColors.error,
+                    onPressed: () => _logout(context, ref),
+                  ),
                 ],
               ),
             );
